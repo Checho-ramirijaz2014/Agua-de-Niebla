@@ -1,0 +1,12 @@
+<PAMDataset>
+  <PAMRasterBand band="1">
+    <Description>CMI_C13_QF</Description>
+    <Metadata>
+      <MDI key="STATISTICS_MAXIMUM">290.20364379883</MDI>
+      <MDI key="STATISTICS_MEAN">276.83631056381</MDI>
+      <MDI key="STATISTICS_MINIMUM">238.33703613281</MDI>
+      <MDI key="STATISTICS_STDDEV">7.3431983537718</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">100</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>

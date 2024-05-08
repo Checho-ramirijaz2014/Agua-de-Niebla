@@ -2,16 +2,17 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import requests
 import os
-from tqdm import tqdm
+from time import perf_counter
+import threading
 from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn, TimeElapsedColumn, TransferSpeedColumn
 
 
 class Goes():
-    def __init__(self, fecha: str, hora: str):
+    def __init__(self, fecha: str, hora: str | None):
 
-        self._anno = int(fecha.split("-")[0])
-        self._dia = int(self._obtener_dia(fecha))
-        self._hora = int(hora) if hora else None
+        self._anno = fecha.split("-")[0]
+        self._dia = self._convertir_datatime(fecha)
+        self._hora = (hora) if hora else None
         #print(f"fecha ingresada: {self._anno}-{self._dia if self._dia else ''}-{self._hora if self._hora else ''}")
         self.XML = f"https://noaa-goes16.s3.amazonaws.com/?list-type=2&delimiter=%2F&prefix=ABI-L2-CMIPF%2F"
         self._path = os.path.expanduser(os.path.join("~", "Desktop", "goes-images", 
@@ -28,8 +29,8 @@ class Goes():
 
     def __procesar_xml(self, fecha: tuple) -> BeautifulSoup:
         self._anno, self._dia, self._hora = fecha
-        self._dia = self.__formato(self._dia, dia = True) if self._dia is not None else None
-        self._hora = self.__formato(self._hora, hora = True) if self._hora is not None else None
+        #self._dia = self.__formato(self._dia, dia = True) if self._dia is not None else None
+        #self._hora = self.__formato(self._hora, hora = True) if self._hora is not None else None
         url = self.XML + \
             f"{str(self._anno) + f'%2F' if self._anno else ''}" + \
                 f"{str(self._dia) + f'%2F' if self._dia else ''}" + \
@@ -80,7 +81,7 @@ class Goes():
         soup = self.__procesar_xml(fecha=(self._anno, self._dia, self._hora))
         lista = [imagen.find("Key").text for imagen in soup.find_all("Contents")]
         print(f"""Hay {len(lista)} imagenes de datos disponibles en el 
-        año: {self._anno}, dia: {self._dia}, hora: {self._hora}""")
+        año: {self._anno}, dia: {self._reconvertir_dia(self._dia)}, hora: {self._hora}""")
         if enumerar:
             for imagen in lista:
                 print(f"imagen: {imagen.split("/")[4]}")
@@ -92,30 +93,22 @@ class Goes():
         total = int(response.headers.get('content-length', 0))
         self._path = os.path.expanduser(os.path.join("~", "Desktop", "goes-images", 
                 f"{self._anno}-{self._dia}-{self._hora}"))
-        try:
-            os.mkdir(self._path)
-            print(f"creando directorio: {self._anno}-{self._dia}-{self._hora}")
-        except FileExistsError:
-            print(f"El directorio {self._path} ya existe")
         total_length = int(response.headers.get('content-length', 0))
-        with open(os.path.join(self._path, link.split("/")[-1]), 'wb') as file, Progress(
-            TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
-            BarColumn(bar_width=None),
-            "•",
-            "[progress.percentage]{task.percentage:>3.0f}%",
-            "•",
-            TransferSpeedColumn(),  # Shows download speed
-            "•",
-            TimeRemainingColumn(),  # Shows time remaining
-            "•",
-            TimeElapsedColumn()    # Shows elapsed time
-        ) as progress: 
-            download_task = progress.add_task("[cyan]Descargando...", total=total_length, filename=link)
+        with open(os.path.join(self._path, link.split("/")[-1]), 'wb') as file:#, Progress(
+        #     TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
+        #     BarColumn(bar_width=None),
+        #     "•", "[progress.percentage]{task.percentage:>3.0f}%",
+        #     "•", TransferSpeedColumn(),  # Muestra velocida de progresso de descarga
+        #     "•", TimeRemainingColumn(),  # Muestra el tiempo que falta
+        #     "•", TimeElapsedColumn()    # muestra el tiempo que ha transcurrido
+        # ) as progress: 
+            #task_descarga = progress.add_task("[cyan]Descargando...", total=total_length, filename=link)
             for chunk in response.iter_content(chunk_size=4096):  
                 file.write(chunk)
-                progress.update(download_task, advance=len(chunk), refresh=True) 
+                #progress.update(task_descarga, advance=len(chunk), refresh=True) 
 
     def descarga(self, dia=None, hora=None):
+        inicio = perf_counter()
         if self._dia:
             #lista_hora = 18 #self.listar_horas(_return=True)
             #for hora in lista_hora:
@@ -126,11 +119,21 @@ class Goes():
             except FileExistsError:
                 print(f"El directorio {self._path} ya existe")
             lista_imagenes = self.listar_imagenes(_return=True)
-            for imagen in lista_imagenes:
-                self._descarga(imagen)
+            threads = []
+            for key, imagen in enumerate(lista_imagenes):
+                task = threading.Thread(target=self._descarga, args=[imagen])
+                task.start()
+                threads.append(task)
+                print(f"Thread {key} inicializando")
+            
+            for thread in threads:
+                thread.join()
 
-    def _obtener_dia(self, fecha: str):
-        return datetime.strptime(fecha, "%Y-%m-%d").timetuple().tm_yday
+        fin = perf_counter()
+        print(f"Se demoro {(fin - inicio)/60} minutos")
+
+    def _convertir_datatime(self, fecha: str) -> str:
+        return str(datetime.strptime(fecha, "%Y-%m-%d").timetuple().tm_yday)
     
     @property
     def anno(self):
@@ -144,5 +147,13 @@ class Goes():
     def hora(self):
         return str(self.__formato(self._hora, hora=True))
     
+    def _reconvertir_dia(self, dia: str):
+        dia = datetime(year=int(self.anno), month=1, day=1) + timedelta(int(dia)-1)
+        return dia.strftime("%m-%d")
     
-    
+
+"""
+Utiliza esto https://stackoverflow.com/questions/3033952/threading-pool-similar-to-the-multiprocessing-pool
+para hacer un pool de threads
+y luego utiliza lo que esta en core_processing.py para ver como implementarlo con rich.progress
+"""

@@ -30,15 +30,3 @@ def __procesar_hora(horas) -> list[str]:
         elif not horas:
             horas = [str(num) for num in range(23)]
         return horas
-
-#print(__procesar_hora(None))
-def lesear(args):
-    if args:
-        a = ""
-        for arg in args:
-            a = a + arg
-        print(a)
-    else:
-        print("No shit")
-a = ["a", "b", "c"]
-lesear(a)

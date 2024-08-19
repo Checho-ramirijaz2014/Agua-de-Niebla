@@ -7,7 +7,10 @@ import requests
 from rich.progress import Progress, Console, BarColumn, TextColumn, TimeRemainingColumn, TimeElapsedColumn, TransferSpeedColumn
 
 
-class Goes():  
+class Goes():
+    """
+    Clase que chequea los archivos disponibles y tambien gestiona la descarga de los satelites.
+    """
     def __init__(self, fecha: str, horas=None, *, path):
         self._anno = fecha.split("-")[0]
         self._dia = self._convertir_datatime(fecha)
@@ -18,11 +21,16 @@ class Goes():
         self.__path = path
         self._path = path
         self.console = Console()
+        self.path = [self.anno]
         try:
             os.mkdir(self.path)
         except FileExistsError:
             self.log(f"El directorio {self.path} ya existe")
-        self.path = self._reconvertir_dia(self.dia)
+        self.path = [self._reconvertir_dia(self.dia)]
+        try:
+            os.mkdir(self.path)
+        except FileExistsError:
+            self.log(f"El directorio {self.path} ya existe")
 
     def log(self, string):
         self.console.log(string)
@@ -54,13 +62,14 @@ class Goes():
             f"{str(self.anno) + f'%2F' if self.anno else ''}" + \
             f"{str(self.dia) + f'%2F' if self.dia else ''}" + \
             f"{str(self.hora) + f'%2F' if self.hora else ''}"
-        response = requests.get(url)
+        response = requests.get(url)    
         if response.status_code == 200:
             return BeautifulSoup(response.text, features="xml")
         else:
             raise ConnectionError("Conexion no establecida, intentar de nuevo")
 
     def listar_annos(self, *, return_=False):
+        "Lista los años disponibles"
         soup = self.__procesar_xml(fecha=(None for _ in range(3)))
         lista = [annos.text for annos in soup.find_all("CommonPrefixes")]
         self.log(f"Hay {len(lista)} años de datos disponibles en la pagina:")
@@ -130,10 +139,10 @@ class Goes():
         inicio = perf_counter()
         for hora in self.horas:
             self.hora = hora
-            self.path = [self._reconvertir_dia(self.anno), self.hora]
+            self.path = [hora]
             try:
                 os.mkdir(self.path)
-                self.log(f"creando directorio: {self.anno}-{self.dia}-{hora}")
+                self.log(f"creando directorio: {self.anno}-{self._reconvertir_dia(self.dia)}-{hora}")
             except FileExistsError:
                 self.log(f"El directorio {self.path} ya existe")
             lista_imagenes = self.listar_imagenes(return_=True)
@@ -182,7 +191,7 @@ class Goes():
     @path.setter
     def path(self, dirs):
         if isinstance(dirs, list):
-            path = self.__path
+            path = self._path
             for dir in dirs:
                 path = os.path.join(path, dir)
             self._path = path
@@ -194,6 +203,7 @@ class Goes():
         return self.__XML
     
     def _reconvertir_dia(self, dia: str):
+        "input: dia entre 0 y 365, output: mismo dia en formato mes-dia"
         dia = datetime(year=int(self.anno), month=1, day=1) + timedelta(int(dia)-1)
         return dia.strftime("%m-%d")
     

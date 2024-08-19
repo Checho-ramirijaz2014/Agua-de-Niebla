@@ -1,3 +1,8 @@
 main.py
 Aestudio84.kml
 descarga.ipynb
+*.ipynb
+Harmonization GOES.docx
+__pycache__/
+*.ipynb_checkpoints/
+

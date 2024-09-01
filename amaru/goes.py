@@ -6,18 +6,23 @@ from bs4 import BeautifulSoup
 import requests
 from rich.progress import Progress, Console, BarColumn, TextColumn, TimeRemainingColumn, TimeElapsedColumn, TransferSpeedColumn
 
+def _links(producto="ABI-L2-CMIPF"):
+    XML = {"aws": f"https://noaa-goes16.s3.amazonaws.com/?list-type=2&delimiter=%2F&prefix={producto}%2F",
+           "noaa": "https://www.ncei.noaa.gov/data/gridsat-goes/access/goes/"
+           }
+    
+    return XML
 
 class Goes():
-    """
-    Clase que chequea los archivos disponibles y tambien gestiona la descarga de los satelites.
-    """
+    """Clase que chequea los archivos disponibles y tambien gestiona la descarga de los satelites."""
+
     def __init__(self, fecha: str, horas=None, *, path):
         self._anno = fecha.split("-")[0]
         self._dia = self._convertir_datatime(fecha)
         self._horas = self.__procesar_hora(horas)
         self._hora = None
-        #self.log(f"fecha ingresada: {self._anno}-{self.dia if self.dia else ''}-{self._hora if self._hora else ''}")
-        self.__XML = f"https://noaa-goes16.s3.amazonaws.com/?list-type=2&delimiter=%2F&prefix=ABI-L2-CMIPF%2F" 
+        #self.__log(f"fecha ingresada: {self._anno}-{self.dia if self.dia else ''}-{self._hora if self._hora else ''}")
+        self.__XML = _links()["aws"]
         self.__path = path
         self._path = path
         self.console = Console()
@@ -25,14 +30,14 @@ class Goes():
         try:
             os.mkdir(self.path)
         except FileExistsError:
-            self.log(f"El directorio {self.path} ya existe")
+            self.__log(f"El directorio {self.path} ya existe")
         self.path = [self._reconvertir_dia(self.dia)]
         try:
             os.mkdir(self.path)
         except FileExistsError:
-            self.log(f"El directorio {self.path} ya existe")
+            self.__log(f"El directorio {self.path} ya existe")
 
-    def log(self, string):
+    def __log(self, string):
         self.console.log(string)
 
     def __procesar_hora(self, horas) -> list[str]:
@@ -57,6 +62,8 @@ class Goes():
             raise ValueError("Verifica el dia o la hora")
 
     def __procesar_xml(self, fecha: tuple) -> BeautifulSoup:
+        """Procesa los xml de la pagina de aws y verificar la conexion"""
+
         self.anno, self.dia, self.hora = fecha
         url = self.XML + \
             f"{str(self.anno) + f'%2F' if self.anno else ''}" + \
@@ -72,49 +79,49 @@ class Goes():
         "Lista los años disponibles"
         soup = self.__procesar_xml(fecha=(None for _ in range(3)))
         lista = [annos.text for annos in soup.find_all("CommonPrefixes")]
-        self.log(f"Hay {len(lista)} años de datos disponibles en la pagina:")
+        self.__log(f"Hay {len(lista)} años de datos disponibles en la pagina:")
         if return_:
             return lista
         for annos in lista:
-            self.log(f"Año: {annos.split("/")[1]}") 
+            self.__log(f"Año: {annos.split("/")[1]}") 
         
     def listar_dias(self, *, return_=False):
         if self.anno is None:
             raise NameError("Define un año")
         soup = self.__procesar_xml(fecha=(self.anno, None, None))
         lista = [dia.text for dia in soup.find_all("CommonPrefixes")]
-        self.log(f"Hay {len(lista)} dias de datos disponibles en el año {self.anno}:")
+        self.__log(f"Hay {len(lista)} dias de datos disponibles en el año {self.anno}:")
         if return_:
             return lista
         for dia in lista:
             dia = dia.split("/")[2]
-            self.log(f"Dia: {dia}  {self.anno + "-" + self._reconvertir_dia(dia)}")
+            self.__log(f"Dia: {dia}  {self.anno + "-" + self._reconvertir_dia(dia)}")
     
     def listar_horas(self, *, return_=False):
         if self.anno is None or self.dia is None:
             raise NameError("Define un año y dia")
         soup = self.__procesar_xml(fecha=(self.anno, self.dia, None))
         lista = [hora.text for hora in soup.find_all("CommonPrefixes")]
-        self.log(f"""
+        self.__log(f"""
                  Hay {len(lista)} horas de datos disponibles en el año
                 {self.anno} y dia {self.dia} - {self._reconvertir_dia(self.dia)}:
                 """)
         if return_:
             return lista
         for hora in lista:
-            self.log(f"hora: {hora.split("/")[3]}")
+            self.__log(f"hora: {hora.split("/")[3]}")
 
     def listar_imagenes(self, *, return_=False):
         if self.anno is None or self.dia is None or self.hora is None:
             raise NameError("Define un año, dia y hora")
         soup = self.__procesar_xml(fecha=(self.anno, self.dia, self.hora))
         lista = [imagen.find("Key").text for imagen in soup.find_all("Contents")]
-        self.log(f"""Hay {len(lista)} imagenes de datos disponibles en el 
+        self.__log(f"""Hay {len(lista)} imagenes de datos disponibles en el 
         año: {self.anno}, dia: {self._reconvertir_dia(self.dia)}, hora: {self.hora}""")
         if return_:
             return lista
         for imagen in lista:
-            self.log(f"imagen: {imagen.split("/")[4]}")
+            self.__log(f"imagen: {imagen.split("/")[4]}")
         
     def __descarga(self, link: str):
         response = requests.get(f"https://noaa-goes16.s3.amazonaws.com/{link}")
@@ -142,16 +149,16 @@ class Goes():
             self.path = [hora]
             try:
                 os.mkdir(self.path)
-                self.log(f"creando directorio: {self.anno}-{self._reconvertir_dia(self.dia)}-{hora}")
+                self.__log(f"creando directorio: {self.anno}-{self._reconvertir_dia(self.dia)}-{hora}")
             except FileExistsError:
-                self.log(f"El directorio {self.path} ya existe")
+                self.__log(f"El directorio {self.path} ya existe")
             lista_imagenes = self.listar_imagenes(return_=True)
             for imagen in lista_imagenes:
                 #self.__descarga(imagen)
                 pass
 
         fin = perf_counter()
-        self.log(f"Se demoro {(fin - inicio)/60} minutos")
+        self.__log(f"Se demoro {(fin - inicio)/60} minutos")
 
     def _convertir_datatime(self, fecha: str) -> str:
         return str(datetime.strptime(fecha, "%Y-%m-%d").timetuple().tm_yday)

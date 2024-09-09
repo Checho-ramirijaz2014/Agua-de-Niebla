@@ -125,7 +125,6 @@ class Goes():
         
     def __descarga(self, link: str):
         response = requests.get(f"https://noaa-goes16.s3.amazonaws.com/{link}")
-        total = int(response.headers.get('content-length', 0))
         total_length = int(response.headers.get('content-length', 0))
         with open(os.path.join(self.path, link.split("/")[-1]), 'wb') as file, Progress(
              TextColumn("[bold blue]{task.fields[filename]}", justify="right"),

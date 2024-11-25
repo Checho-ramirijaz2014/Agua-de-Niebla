@@ -10,7 +10,9 @@ Actualmente se esta desarrollando un paquete llamado amaru, con el fin de obtene
 
 ## Amaru
 
-Amaru es un paquete de python para descargar imagenes satelites de la linea GOES. Por ahora solo se pueden descargar las imagenes que estan disponibles en el sitio web de [AWS](https://noaa-goes16.s3.amazonaws.com/index.html) y que pertenecen al producto ABI-L2-CMIPF, pero se espera tambien obtener imagenes de otras fuentes anteriores.
+Amaru es un paquete de python para descargar imagenes satelites de la linea GOES. Por ahora solo se pueden descargar las imagenes que estan disponibles en el sitio web de [AWS](https://noaa-goes16.s3.amazonaws.com/index.html) y que pertenecen al producto ABI-L2-CMIPF, pero se espera tambien obtener imagenes de otras fuentes anteriores. 
+
+la informacion sobre la mision del goes junto con variables puede ser encontrada [aqui](https://www.goes-r.gov/multimedia/dataAndImageryImagesGoes-16.html).
 
 ### Instalacion
 
@@ -19,6 +21,8 @@ Se puede instalar con pip:
 ```bash
 pip install git+git://github.com/Checho-ramirijaz2014/Agua-de-Niebla.git
 ```
+
+
 
 
 

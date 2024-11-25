@@ -11,7 +11,7 @@ class _GoesAWS():
 
     __slots__ = "path", "console", "payload", "cpu"
 
-    def __init__(self, time: str, path, console: Console, product="ABI-L2-CMIPF", cpu=mp.cpu_count()):
+    def __init__(self, time: str, path, console: Console, cpu, product="ABI-L2-CMIPF"):
         self.path = path
         self.console = console
         self.cpu = cpu
@@ -23,7 +23,7 @@ class _GoesAWS():
         }   
 
     def __log(self, string):
-        self.console.log(string)
+        self.console.log(string, sep=os.linesep)
 
     def _procesar_xml(self) -> BeautifulSoup:
         """Procesa los xml de la pagina de aws y verificar la conexion"""
@@ -43,8 +43,8 @@ class _GoesAWS():
         """Gestiona la descarga de una fecha en especifico"""
         lista_imagenes = self._listar_imagenes()
 
-        with mp.Pool(self.cpu) as p:
-            p.starmap(self._descarga, [(self.path, imagen) for imagen in lista_imagenes])
+        with mp.Pool(self.cpu) as pool:
+            pool.starmap(self._descarga, [(self.path, imagen) for imagen in lista_imagenes])
 
     @staticmethod
     def _descarga(path: str,link: str) -> None:
@@ -68,9 +68,4 @@ class _GoesAWS():
             for chunk in response.iter_content(chunk_size=4096):  
                 file.write(chunk)
                 progress.update(task_descarga, advance=len(chunk), refresh=True) 
-
-_fecha = "2017/060/04"
-_path = os.path.join("/media", "checho", "goes", "2017", "03", "1", "04")
-goesito = _GoesAWS(_fecha, _path, Console())
-goesito._descargar()
 

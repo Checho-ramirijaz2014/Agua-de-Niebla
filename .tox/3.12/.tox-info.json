@@ -1,0 +1,6 @@
+{
+  "ToxEnv": {
+    "name": "3.12",
+    "type": "VirtualEnvRunner"
+  }
+}

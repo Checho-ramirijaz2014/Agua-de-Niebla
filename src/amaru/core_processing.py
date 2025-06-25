@@ -3,10 +3,6 @@ from functools import wraps, partial
 import multiprocessing as mp
 
 
-
-
-
-
 def timeit(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -15,7 +11,9 @@ def timeit(func):
         fin = time.perf_counter()
         print(f"{(func.__name__)} se demoro {fin - inicio}")
         return res
+
     return wrapper
+
 
 @timeit
 def productoria(num):
@@ -24,5 +22,3 @@ def productoria(num):
         result = result * x
 
     print(result)
-
-

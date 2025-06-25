@@ -1,54 +1,94 @@
 from bs4 import BeautifulSoup
+from datetime import datetime
 import os
+from pathlib import Path
 import multiprocessing as mp
 import requests
-from rich.progress import Progress, Console, BarColumn, TextColumn, TimeRemainingColumn, TimeElapsedColumn, TransferSpeedColumn
+from rich.progress import (
+    Progress,
+    Console,
+    BarColumn,
+    TextColumn,
+    TimeRemainingColumn, 
+    TimeElapsedColumn,
+    TransferSpeedColumn,
+)
 
 _XML = "https://noaa-goes16.s3.amazonaws.com/"
 
-class _GoesAWS():
+
+class _GoesAWS:
     """Clase que administra las descargas de la pagina de AWS"""
 
-    __slots__ = "path", "console", "payload", "cpu"
+    __slots__ = "path", "console", "payload", "cpu", "datelist", "product", "fecha"
 
-    def __init__(self, time: str, path, console: Console, cpu, product="ABI-L2-CMIPF"):
+    def __init__(self, datelist: list[datetime], path, console: Console, cpu, product="ABI-L2-CMIPF"):
         self.path = path
         self.console = console
         self.cpu = cpu
-
-        self.payload = {
-            "list-type": "2",
-            "delimiter": "/",
-            "prefix": f"{product}/{time}/"
-        }   
+        self.datelist = datelist
+        self.product = product
+        self.payload = {}
+        self.fecha = ""
 
     def __log(self, string):
-        self.console.log(string, sep=os.linesep)
+        self.console.print(string)
+
+    def _prepared_download(self):
+        for datetime_ in self.datelist:
+        
+            """ordinal representation of a given day
+            example: 246 for 3th september"""
+            day = int(datetime_.strftime("%j"))
+            self.fecha = f"{datetime_.year}/{day:03}/{datetime_.hour:02}"
+
+            path = Path(
+                    self.path
+                    / "AWS"
+                    / str(datetime_.year)
+                    / datetime_.strftime("%b")
+                    / str(datetime_.day)
+                    / f"{datetime_.hour:02}"
+                )
+
+            path.mkdir(parents=True, exist_ok=True)
+            self._descargar()
+
 
     def _procesar_xml(self) -> BeautifulSoup:
         """Procesa los xml de la pagina de aws y verificar la conexion"""
-        response = requests.get(_XML, params=self.payload)    
+        self.payload = {
+            "list-type": "2",
+            "delimiter": "/",
+            "prefix": f"{self.product}/{self.fecha}/"
+        }
+
+
+        response = requests.get(_XML, params=self.payload)
         if response.status_code == 200:
             return BeautifulSoup(response.text, features="xml")
         else:
             raise ConnectionError("Conexion no establecida, intentar de nuevo")
-    
+
     def _listar_imagenes(self) -> list[str]:
         soup = self._procesar_xml()
         lista = [imagen.find("Key").text for imagen in soup.find_all("Contents")]
-        self.__log(f"Hay {len(lista)} imagenes de datos disponibles")
+        self.__log(f"Hay {len(lista)} archivos .nc")
         return lista
-        
+
     def _descargar(self) -> None:
         """Gestiona la descarga de una fecha en especifico"""
         lista_imagenes = self._listar_imagenes()
 
         with mp.Pool(self.cpu) as pool:
-            pool.starmap(self._descarga, [(self.path, imagen) for imagen in lista_imagenes])
+            pool.starmap(
+                self._descarga, [(self.path, imagen) for imagen in lista_imagenes]
+            )
 
     @staticmethod
-    def _descarga(path: str,link: str) -> None:
-
+    def _descarga(path: str, link: str) -> None:
+        print(link)
+        """
         response = requests.get(f"https://noaa-goes16.s3.amazonaws.com/{link}", stream=True)
         total_length = int(response.headers.get('content-length', 0))
 
@@ -67,5 +107,4 @@ class _GoesAWS():
             task_descarga = progress.add_task("[cyan]Descargando...", total=total_length, filename=link.split("/")[-1])
             for chunk in response.iter_content(chunk_size=4096):  
                 file.write(chunk)
-                progress.update(task_descarga, advance=len(chunk), refresh=True) 
-
+                progress.update(task_descarga, advance=len(chunk), refresh=True) """

@@ -1,5 +1,20 @@
+# --------------------------------------------------------------------
+#                        GITIGNORE FILE
+# For testing packages in multiple env with different versions of 
+# Python and OS. This file include configuratios both for local and
+# remote CI.
+# Python 3.8, 3.9, 3.10, 3.11, 3.12, and/or 3.13 are required.
+# when checking local coverage. To run just one interpreter:
+#
+#   $ tox -e py38
+#
+# You can then drill down into coverage details by opening the HTML
+# report at ".coverage_html/index.html".
+#
+# --------------------------------------------------------------------
 main.py
 datos/
+bin/
 descarga.ipynb
 *.ipynb
 Harmonization GOES.docx

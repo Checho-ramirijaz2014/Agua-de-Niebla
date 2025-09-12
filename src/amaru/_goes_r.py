@@ -4,29 +4,37 @@ import os
 from pathlib import Path
 import multiprocessing as mp
 import requests
+from typing import Generator
+from .constants import XML
+from .datetools import _retry
 from rich.progress import (
     Progress,
     Console,
     BarColumn,
     TextColumn,
-    TimeRemainingColumn, 
+    TimeRemainingColumn,
     TimeElapsedColumn,
     TransferSpeedColumn,
 )
-
-_XML = "https://noaa-goes16.s3.amazonaws.com/"
 
 
 class _GoesAWS:
     """Clase que administra las descargas de la pagina de AWS"""
 
-    __slots__ = "path", "console", "payload", "cpu", "datelist", "product", "fecha"
+    __slots__ = ("path", "console", "payload", "cpu", "datelist", "product", "fecha", "path_")
 
-    def __init__(self, datelist: list[datetime], path, console: Console, cpu, product="ABI-L2-CMIPF"):
+    def __init__(
+        self,
+        datelist: Generator[datetime],
+        path,
+        console: Console,
+        cpu: int,
+        product: str="ABI-L2-CMIPF",
+    ):
+        self.datelist = datelist
         self.path = path
         self.console = console
         self.cpu = cpu
-        self.datelist = datelist
         self.product = product
         self.payload = {}
         self.fecha = ""
@@ -34,37 +42,36 @@ class _GoesAWS:
     def __log(self, string):
         self.console.print(string)
 
-    def _prepared_download(self):
+    def _prepare_download(self):
         for datetime_ in self.datelist:
-        
+
             """ordinal representation of a given day
             example: 246 for 3th september"""
             day = int(datetime_.strftime("%j"))
             self.fecha = f"{datetime_.year}/{day:03}/{datetime_.hour:02}"
 
-            path = Path(
-                    self.path
-                    / "AWS"
-                    / str(datetime_.year)
-                    / datetime_.strftime("%b")
-                    / str(datetime_.day)
-                    / f"{datetime_.hour:02}"
-                )
+            self.path_ = Path(
+                self.path
+                / "AWS"
+                / str(datetime_.year)
+                / datetime_.strftime("%b")
+                / str(datetime_.day)
+                / f"{datetime_.hour:02}"
+            )
 
-            path.mkdir(parents=True, exist_ok=True)
+            self.path_.mkdir(parents=True, exist_ok=True)
             self._descargar()
-
 
     def _procesar_xml(self) -> BeautifulSoup:
         """Procesa los xml de la pagina de aws y verificar la conexion"""
+        
         self.payload = {
             "list-type": "2",
             "delimiter": "/",
-            "prefix": f"{self.product}/{self.fecha}/"
+            "prefix": f"{self.product}/{self.fecha}/",
         }
 
-
-        response = requests.get(_XML, params=self.payload)
+        response = requests.get(XML, params=self.payload)
         if response.status_code == 200:
             return BeautifulSoup(response.text, features="xml")
         else:
@@ -82,13 +89,13 @@ class _GoesAWS:
 
         with mp.Pool(self.cpu) as pool:
             pool.starmap(
-                self._descarga, [(self.path, imagen) for imagen in lista_imagenes]
+                self._descarga, [(self.path_, imagen) for imagen in lista_imagenes]
             )
 
+    
     @staticmethod
     def _descarga(path: str, link: str) -> None:
-        print(link)
-        """
+        
         response = requests.get(f"https://noaa-goes16.s3.amazonaws.com/{link}", stream=True)
         total_length = int(response.headers.get('content-length', 0))
 
@@ -107,4 +114,5 @@ class _GoesAWS:
             task_descarga = progress.add_task("[cyan]Descargando...", total=total_length, filename=link.split("/")[-1])
             for chunk in response.iter_content(chunk_size=4096):  
                 file.write(chunk)
-                progress.update(task_descarga, advance=len(chunk), refresh=True) """
+                progress.update(task_descarga, advance=len(chunk), refresh=True) 
+        

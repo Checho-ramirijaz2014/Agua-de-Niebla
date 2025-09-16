@@ -38,7 +38,13 @@ HEIGHT: Final[int] = 800
 YMIN: Final[float] = YMAX - (HEIGHT * YRES)
 XMAX: Final[float] = XMIN + (WIDTH * XRES)
 
-_PATH_GOES_MONTHS : Final[str] = os.path.join("src", "amaru", "data", "goes_months.json")
-_PATH_NOAAH_SATELLITES: Final[str] = os.path.join("src", "amaru", "data", "noaah_satellites.json")
-_PATH_INVALID_DATES: Final[str] = os.path.join("src", "amaru", "data", "invalid_dates.json")
-_PATH_INVALID_DATA: Final[str] = os.path.join("src", "amaru", "data", "invalid_data.json")
+_PATH_GOES_MONTHS: Final[str] = os.path.join("src", "amaru", "data", "goes_months.json")
+_PATH_NOAAH_SATELLITES: Final[str] = os.path.join(
+    "src", "amaru", "data", "noaah_satellites.json"
+)
+_PATH_INVALID_DATES: Final[str] = os.path.join(
+    "src", "amaru", "data", "invalid_dates.json"
+)
+_PATH_INVALID_DATA: Final[str] = os.path.join(
+    "src", "amaru", "data", "invalid_data.json"
+)

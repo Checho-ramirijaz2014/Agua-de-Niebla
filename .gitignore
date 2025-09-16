@@ -12,9 +12,13 @@
 # report at ".coverage_html/index.html".
 #
 # --------------------------------------------------------------------
+.tox/
 main.py
 datos/
 bin/
+dist/
+.pytest_cache/
+.mypy_cache/
 descarga.ipynb
 *.ipynb
 Harmonization GOES.docx

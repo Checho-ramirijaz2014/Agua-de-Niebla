@@ -1,8 +1,10 @@
-from .constants import (URLNOAAH,
-                        _PATH_GOES_MONTHS,
-                        _PATH_NOAAH_SATELLITES,
-                        _PATH_INVALID_DATES,
-                        _PATH_INVALID_DATA)
+from .constants import (
+    URLNOAAH,
+    _PATH_GOES_MONTHS,
+    _PATH_NOAAH_SATELLITES,
+    _PATH_INVALID_DATES,
+    _PATH_INVALID_DATA,
+)
 from .datetools import timerange, get_first_day
 from bs4 import BeautifulSoup, Tag
 import requests
@@ -13,11 +15,13 @@ import json
 __all__ = ("update",)
 
 
-def update(update_noaah=False,
-           update_noah_satellite=False,
-           update_invalid_dates=False,
-           update_data_not_available=False,
-           all=False) -> None:
+def update(
+    update_noaah=False,
+    update_noah_satellite=False,
+    update_invalid_dates=False,
+    update_data_not_available=False,
+    all=False,
+) -> None:
 
     if update_noaah or all:
         _get_months_for_all_years()
@@ -135,7 +139,8 @@ def _get_invalid_dates():
     with open(_PATH_INVALID_DATES, "w") as file:
         json.dump(invalid_dates, file)
 
-def check_goes_dates_are_there(start: datetime, end: datetime, images) -> list:
+
+def check_goes_dates_are_there(start: datetime, end: datetime, images) -> list[str]:
     gen_timerange = timerange(start, end)
     dates_not_available = []
     for datetime_ in gen_timerange:

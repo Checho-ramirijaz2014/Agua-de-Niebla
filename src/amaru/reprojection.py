@@ -42,11 +42,10 @@ def reproject_goes16(input_file, output_file=None):
     # Configure output file name
     if output_file is None:
         base_name = os.path.splitext(input_file)[0]
-        output_file = f"{base_name}-CMI-.nc"
+        output_file = f"{base_name}_test.nc"
     
     # Target projection parameters
-    target_srs = "EPSG:4326"  # WGS84 Geographic
-    
+    target_srs = "EPSG:4326"  # WGS84 Geographic   
     
     print(f"Processing GOES-16 file: {input_file}")
     print(f"Output file: {output_file}")
@@ -91,7 +90,7 @@ def reproject_goes16(input_file, output_file=None):
         print("Converting to NetCDF3 Classic format...")
         
         # Convert to NetCDF3 Classic using netCDF4-python
-        convert_to_netcdf3_classic(temp_file, output_file)
+        convert_to_netcdf3_classic(temp_file, output_file, rename_band=('Band1', 'CMI'))
         
         # Clean up temporary file
         if os.path.exists(temp_file):
@@ -108,18 +107,19 @@ def reproject_goes16(input_file, output_file=None):
         # Display output file info
         print("\n=== Output file information ===")
         display_info(output_file)
-        
+            
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
 
-def convert_to_netcdf3_classic(input_file, output_file):
+def convert_to_netcdf3_classic(input_file, output_file, rename_band=None):
     """
     Convert NetCDF file to NetCDF3 Classic format
     
     Args:
         input_file (str): Input NetCDF file
         output_file (str): Output NetCDF3 Classic file
+        rename_band (tuple): Optional tuple of (old_name, new_name) to rename a variable
     """
     
     if not HAS_NETCDF4:
@@ -127,9 +127,9 @@ def convert_to_netcdf3_classic(input_file, output_file):
     
     print(f"Converting {input_file} to NetCDF3 Classic format...")
     
-    # Open input file
+    
     with netCDF4.Dataset(input_file, 'r') as src:
-        # Create output file in NetCDF3 Classic format
+        
         with netCDF4.Dataset(output_file, 'w', format='NETCDF3_CLASSIC') as dst:
             
             # Copy global attributes safely
@@ -172,6 +172,12 @@ def convert_to_netcdf3_classic(input_file, output_file):
             # Copy variables
             for var_name, var in src.variables.items():
                 
+                # Check if this variable should be renamed
+                output_var_name = var_name
+                if rename_band and var_name == rename_band[0]:
+                    output_var_name = rename_band[1]
+                    print(f"Renaming variable '{var_name}' to '{output_var_name}'")
+                
                 # Determine appropriate data type for NetCDF3
                 dtype = var.dtype
                 if dtype == np.float64:
@@ -199,7 +205,7 @@ def convert_to_netcdf3_classic(input_file, output_file):
                 
                 # Create variable
                 dst_var = dst.createVariable(
-                    var_name, 
+                    output_var_name,  # Use the potentially renamed variable name
                     nc_dtype, 
                     var.dimensions,
                     zlib=False,  # No compression in NetCDF3

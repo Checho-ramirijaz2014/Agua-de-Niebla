@@ -12,6 +12,7 @@ from functools import partial
 import multiprocessing as mp
 from .constants import *
 from pathlib import Path
+import xarray as xr
 
 gdal.UseExceptions()
 
@@ -68,6 +69,7 @@ def reproject_goes16(input_file, output_file=None):
         resampleAlg=gdal.GRA_Bilinear,
         srcNodata=np.nan,
         dstNodata=np.nan,
+        outputType=gdal.GDT_Float64,
         
         creationOptions=[
             'FORMAT=NC',
@@ -110,7 +112,6 @@ def reproject_goes16(input_file, output_file=None):
             
     except Exception as e:
         print(f"Error: {e}")
-        sys.exit(1)
 
 def convert_to_netcdf3_classic(input_file, output_file, rename_band=None):
     """
@@ -258,8 +259,69 @@ def convert_to_netcdf3_classic(input_file, output_file, rename_band=None):
                 except Exception as e:
                     print(f"Warning: Could not copy data for variable '{var_name}': {e}")
                     continue
+
+
     
     print(f"Successfully converted to NetCDF3 Classic: {output_file}")
+
+    
+    print("--- Removing unnecesary data... ---")
+
+    # global metadata
+    with netCDF4.Dataset(output_file, "a") as ds:
+        del ds.project
+        del ds.cdm_data_type
+        del ds.dataset_name
+        del ds.date_created
+        del ds.GDAL
+        del ds.id
+        del ds.instrument_ID
+        del ds.instrument_type
+        del ds.iso_series_metadata_id
+        del ds.keywords
+        del ds.keywords_vocabulary
+        del ds.license
+        del ds.Metadata_Conventions
+        del ds.naming_authority
+        del ds.orbital_slot
+        del ds.platform_ID
+        del ds.processing_level
+        del ds.production_data_source
+        del ds.production_environment
+        del ds.production_site
+        del ds.scene_id
+        del ds.spatial_resolution
+        del ds.standard_name_vocabulary
+        del ds.summary
+        del ds.timeline_id
+        del ds.time_coverage_end
+        del ds.time_coverage_start
+        del ds.institution
+
+        # cmi metadata
+        cmi_data = ds.variables["CMI"]
+        del cmi_data.resolution
+        del cmi_data.add_offset
+        del cmi_data.ancillary_variables
+        del cmi_data.grid_mapping
+        del cmi_data.standard_name
+        del cmi_data.sensor_band_bit_depth
+        del cmi_data.scale_factor
+        del cmi_data.cell_methods
+        del cmi_data._FillValue
+
+        # latitude metadata
+        lat_data = ds.variables["lat"]
+        del lat_data.long_name
+        del lat_data.standard_name
+        
+        # longitude metadata
+        lon_data = ds.variables["lon"]
+        del lon_data.long_name
+        del lon_data.standard_name
+
+    print("metadata removed sucesfully")
+
 
 def update_metadata(output_file):
     """

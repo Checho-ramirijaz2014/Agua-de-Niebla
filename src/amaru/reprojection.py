@@ -66,7 +66,7 @@ def reproject_goes16(input_file, output_file=None):
         yRes=YRES,
         width=WIDTH,
         height=HEIGHT,
-        resampleAlg=gdal.GRA_Bilinear,
+        resampleAlg=None,
         srcNodata=np.nan,
         dstNodata=np.nan,
         outputType=gdal.GDT_Float64,
@@ -301,12 +301,12 @@ def convert_to_netcdf3_classic(input_file, output_file, rename_band=None):
         # cmi metadata
         cmi_data = ds.variables["CMI"]
         del cmi_data.resolution
-        del cmi_data.add_offset
+        # del cmi_data.add_offset
         del cmi_data.ancillary_variables
         del cmi_data.grid_mapping
         del cmi_data.standard_name
         del cmi_data.sensor_band_bit_depth
-        del cmi_data.scale_factor
+        # del cmi_data.scale_factor
         del cmi_data.cell_methods
         del cmi_data._FillValue
 
